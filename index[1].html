@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人专注工作台</title>
+<meta name="theme-color" content="#fafafa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="工作台">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23111'/%3E%3Crect x='5' y='5' width='6' height='6' fill='%23fff'/%3E%3Crect x='13' y='5' width='6' height='6' fill='%23888'/%3E%3Crect x='5' y='13' width='6' height='6' fill='%23888'/%3E%3Crect x='13' y='13' width='6' height='6' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+/* ============ 设计令牌 ============ */
+:root{
+  --ink:#141414;
+  --ink-2:#3a3a3a;
+  --gray:#6f6f6f;
+  --gray-2:#9a9a9a;
+  --line:#e3e3e3;
+  --line-2:#d0d0d0;
+  --bg:#fafafa;
+  --panel:#ffffff;
+  --bg-muted:#f2f2f2;
+  --black:#141414;
+  --radius:6px;
+  --mono:ui-monospace,'SF Mono',Consolas,'Liberation Mono',Menlo,'Courier New',monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Helvetica Neue',Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  color:var(--ink);
+  font-size:15px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+::selection{background:var(--ink);color:#fff}
+
+/* ============ 布局骨架 ============ */
+.app{display:flex;min-height:100vh;opacity:0;transform:translateY(16px);transition:opacity .65s cubic-bezier(.22,.8,.32,1) .06s,transform .65s cubic-bezier(.22,.8,.32,1) .06s}
+.app.ready{opacity:1;transform:none}
+
+/* ============ 启动页 ============ */
+#splash{position:fixed;inset:0;z-index:300;background:var(--bg);display:flex;align-items:center;justify-content:center;transition:opacity .55s ease,visibility .55s ease}
+#splash.leaving{opacity:0;visibility:hidden}
+.splash-inner{text-align:center;padding:24px;transform:translateY(0);transition:transform .55s cubic-bezier(.22,.8,.32,1)}
+#splash.leaving .splash-inner{transform:translateY(-14px)}
+.splash-logo{width:40px;height:40px;margin:0 auto 30px;display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.splash-logo i{display:block;background:var(--ink)}
+.splash-logo i:nth-child(2),.splash-logo i:nth-child(3){background:var(--gray-2)}
+.splash-title{font-size:26px;font-weight:700;letter-spacing:.12em}
+.splash-sub{font-family:var(--mono);font-size:12px;color:var(--gray-2);letter-spacing:.2em;margin-top:12px}
+.splash-enter{margin-top:46px;padding:13px 58px;font-size:14.5px;letter-spacing:.3em;text-indent:.3em;border-radius:var(--radius)}
+.splash-hint{margin-top:20px;font-size:12px;color:var(--gray-2)}
+@media (prefers-reduced-motion:reduce){#splash,.splash-inner,.app{transition:none}}
+.sidebar{
+  width:232px;flex-shrink:0;
+  background:var(--panel);
+  border-right:1px solid var(--line);
+  display:flex;flex-direction:column;
+  padding:32px 20px;
+  position:sticky;top:0;height:100vh;
+}
+.brand{font-weight:700;font-size:17px;letter-spacing:.04em;margin-bottom:4px}
+.brand .mark{display:inline-block;width:9px;height:9px;background:var(--ink);margin-right:9px;vertical-align:1px}
+.brand-sub{font-size:12px;color:var(--gray-2);letter-spacing:.14em;margin-bottom:36px;padding-left:18px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav-item{
+  display:flex;align-items:center;gap:11px;
+  padding:10px 12px;border-radius:var(--radius);
+  color:var(--gray);font-size:14.5px;font-weight:400;
+  text-align:left;width:100%;
+  transition:background .12s,color .12s;
+}
+.nav-item svg{width:17px;height:17px;stroke-width:1.6;flex-shrink:0}
+.nav-item:hover{background:var(--bg-muted);color:var(--ink)}
+.nav-item.active{background:var(--ink);color:#fff;font-weight:500}
+.sidebar-foot{margin-top:auto;font-size:11.5px;color:var(--gray-2);line-height:1.7;border-top:1px solid var(--line);padding-top:16px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+  height:auto;padding:30px 48px 20px;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.page-title{font-size:24px;font-weight:700;letter-spacing:.01em}
+.page-date{font-family:var(--mono);font-size:12.5px;color:var(--gray);letter-spacing:.05em;margin-top:5px}
+.content{padding:8px 48px 64px;max-width:1080px;width:100%}
+
+/* ============ 通用组件 ============ */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+.card + .card{margin-top:18px}
+.card-h{font-size:13px;font-weight:500;color:var(--gray);letter-spacing:.16em;margin-bottom:18px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  border:1px solid var(--ink);background:var(--ink);color:#fff;
+  padding:9px 18px;border-radius:var(--radius);font-size:13.5px;font-weight:500;
+  transition:opacity .12s,background .12s,color .12s;white-space:nowrap;
+}
+.btn:hover{opacity:.82}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:var(--bg-muted);opacity:1}
+.btn.subtle{border-color:var(--line-2);background:var(--panel);color:var(--ink-2)}
+.btn.subtle:hover{background:var(--bg-muted)}
+.btn.sm{padding:6px 12px;font-size:12.5px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.input{
+  border:1px solid var(--line-2);border-radius:var(--radius);
+  padding:10px 13px;background:var(--panel);width:100%;outline:none;
+  transition:border-color .12s;
+}
+.input:focus{border-color:var(--ink)}
+textarea.input{resize:vertical;line-height:1.75}
+.muted{color:var(--gray)}
+.mono{font-family:var(--mono)}
+.empty{color:var(--gray-2);font-size:13.5px;text-align:center;padding:34px 0;line-height:1.9}
+
+/* ============ 总览 ============ */
+.hello{margin-bottom:26px}
+.hello h1{font-size:30px;font-weight:700;letter-spacing:.01em;line-height:1.35}
+.hello p{color:var(--gray);margin-top:9px;font-size:14.5px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px}
+.stat-num{font-family:var(--mono);font-size:38px;font-weight:500;line-height:1.1}
+.stat-num small{font-size:15px;color:var(--gray);font-weight:400;margin-left:3px}
+.stat-label{font-size:13px;color:var(--gray);margin-top:9px;letter-spacing:.03em}
+.overview-cols{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;margin-top:18px}
+.mini-list{list-style:none}
+.mini-list li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.mini-list li:last-child{border-bottom:none}
+.mini-dot{width:6px;height:6px;border:1.5px solid var(--ink);border-radius:50%;flex-shrink:0}
+.mini-list li.done .mini-dot{background:var(--ink)}
+.mini-list li.done span{text-decoration:line-through;color:var(--gray-2)}
+.mini-list li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ============ 待办 ============ */
+.todo-add{display:flex;gap:10px;margin-bottom:16px}
+.todo-add .input{flex:1}
+.todo-filters{display:flex;gap:6px;margin-bottom:6px}
+.chip{padding:5px 13px;border-radius:999px;border:1px solid var(--line-2);font-size:12.5px;color:var(--gray);background:var(--panel)}
+.chip.active{background:var(--ink);border-color:var(--ink);color:#fff}
+.todo-item{display:flex;align-items:flex-start;gap:13px;padding:14px 4px;border-bottom:1px solid var(--line)}
+.todo-check{
+  width:19px;height:19px;border:1.5px solid var(--line-2);border-radius:50%;
+  flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;
+  transition:all .12s;
+}
+.todo-check svg{width:11px;height:11px;stroke:#fff;stroke-width:2.5;opacity:0}
+.todo-item.done .todo-check{background:var(--ink);border-color:var(--ink)}
+.todo-item.done .todo-check svg{opacity:1}
+.todo-body{flex:1;min-width:0}
+.todo-text{font-size:14.5px;word-break:break-word}
+.todo-item.done .todo-text{color:var(--gray-2);text-decoration:line-through}
+.todo-meta{font-family:var(--mono);font-size:11px;color:var(--gray-2);margin-top:3px}
+.todo-del{color:var(--gray-2);padding:3px;border-radius:4px;display:flex;opacity:0;transition:opacity .12s,color .12s}
+.todo-item:hover .todo-del{opacity:1}
+.todo-del:hover{color:var(--ink)}
+.todo-del svg{width:15px;height:15px;stroke-width:1.7}
+.todo-foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:12.5px;color:var(--gray)}
+
+/* ============ 迷你日历 ============ */
+.cal-layout{display:grid;grid-template-columns:296px 1fr;gap:18px;align-items:start}
+.mini-cal .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.mini-cal .ym{font-size:14px;font-weight:500;letter-spacing:.02em}
+.cal-nav{display:flex;gap:4px;align-items:center}
+.cal-nav button{width:26px;height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--gray)}
+.cal-nav button:hover{background:var(--bg-muted);color:var(--ink)}
+.cal-nav svg{width:15px;height:15px;stroke-width:1.8}
+.cal-nav .today-btn{width:auto;padding:0 9px;font-size:12px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-wd{text-align:center;font-size:11px;color:var(--gray-2);padding:5px 0;letter-spacing:.05em}
+.cal-day{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;border-radius:4px;cursor:pointer;color:var(--ink);transition:background .1s}
+.cal-day:hover{background:var(--bg-muted)}
+.cal-day.off{color:var(--gray-2);opacity:.4}
+.cal-day.today{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.cal-day.sel{background:var(--ink);color:#fff}
+.cal-day.sel.today{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.7)}
+.cal-day .din{width:4px;height:4px;border-radius:50%;margin-top:3px;background:transparent}
+.cal-day.has .din{background:var(--ink)}
+.cal-day.done-all .din{background:transparent;box-shadow:inset 0 0 0 1px var(--ink)}
+.cal-day.sel.has .din{background:#fff}
+.cal-day.sel.done-all .din{background:transparent;box-shadow:inset 0 0 0 1px #fff}
+.sel-date-title{font-size:15px;font-weight:500;margin-bottom:14px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sel-date-title .sub{font-family:var(--mono);font-size:12px;color:var(--gray);font-weight:400}
+@media (max-width:860px){
+  .cal-layout{grid-template-columns:1fr}
+  .mini-cal{max-width:420px;margin:0 auto;width:100%}
+}
+
+/* ============ 番茄钟 ============ */
+.pomo-wrap{display:flex;flex-direction:column;align-items:center;padding:24px 0 8px}
+.pomo-ring{position:relative;width:280px;height:280px;margin-bottom:30px}
+.pomo-ring svg{transform:rotate(-90deg);width:100%;height:100%}
+.ring-bg{fill:none;stroke:var(--line);stroke-width:3}
+.ring-fg{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset .5s linear}
+.pomo-time{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pomo-time .t{font-family:var(--mono);font-size:60px;font-weight:500;letter-spacing:.01em;line-height:1}
+.pomo-time .phase{font-size:12.5px;color:var(--gray);letter-spacing:.22em;margin-top:12px}
+.pomo-controls{display:flex;gap:12px;margin-bottom:26px}
+.pomo-controls .btn{padding:11px 30px;font-size:14.5px}
+.pomo-tabs{display:flex;gap:4px;border:1px solid var(--line-2);border-radius:var(--radius);padding:3px;margin-bottom:22px}
+.pomo-tab{padding:6px 18px;font-size:13px;color:var(--gray);border-radius:4px}
+.pomo-tab.active{background:var(--ink);color:#fff}
+.pomo-settings{display:flex;gap:22px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:13px;color:var(--gray)}
+.pomo-settings label{display:flex;align-items:center;gap:8px}
+.pomo-settings input{width:64px;text-align:center;padding:6px;border:1px solid var(--line-2);border-radius:var(--radius);font-family:var(--mono)}
+.pomo-stats{display:flex;gap:36px;justify-content:center;border-top:1px solid var(--line);padding-top:22px;margin-top:4px}
+.pomo-stat .n{font-family:var(--mono);font-size:26px;font-weight:500}
+.pomo-stat .l{font-size:12px;color:var(--gray);margin-top:2px;text-align:center}
+.pomo-round{font-size:13px;text-align:center;min-height:20px;letter-spacing:.02em}
+.pomo-check{display:flex;align-items:center;gap:6px;cursor:pointer}
+.pomo-check input{width:15px;height:15px;accent-color:var(--ink);cursor:pointer}
+
+/* ============ 日记 ============ */
+.diary-date{font-family:var(--mono);font-size:13px;color:var(--gray);margin-bottom:12px}
+.diary-text{min-height:280px;font-size:14.5px}
+.diary-save{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12.5px;color:var(--gray-2)}
+.diary-hist{margin-top:18px}
+.diary-hist-item{border-bottom:1px solid var(--line);padding:13px 2px;cursor:pointer}
+.diary-hist-item:hover{background:var(--bg-muted)}
+.diary-hist-date{font-family:var(--mono);font-size:12px;color:var(--gray)}
+.diary-hist-preview{font-size:13px;color:var(--ink-2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ============ 灵魂拷问弹窗 ============ */
+.ask-settings{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.switch{position:relative;width:42px;height:24px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.switch .track{position:absolute;inset:0;background:var(--line-2);border-radius:999px;transition:background .15s;cursor:pointer}
+.switch .track::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch input:checked + .track{background:var(--ink)}
+.switch input:checked + .track::before{transform:translateX(18px)}
+.ask-interval{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--gray)}
+.ask-interval input{width:70px;padding:7px 10px;border:1px solid var(--line-2);border-radius:var(--radius);font-family:var(--mono);text-align:center}
+.q-row{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.q-idx{font-size:12px;color:var(--gray-2);padding-top:11px;flex-shrink:0;width:24px}
+.q-edit{flex:1;min-height:44px;line-height:1.7;font-size:14px}
+.q-del{color:var(--gray-2);padding:8px;flex-shrink:0;border-radius:4px;display:flex;margin-top:3px}
+.q-del:hover{color:var(--ink);background:var(--bg-muted)}
+.q-del svg{width:16px;height:16px;stroke-width:1.7}
+.sync-status{font-family:var(--mono);font-size:12px;color:var(--gray);margin-top:14px;line-height:1.7;word-break:break-all}
+details summary{list-style:none}
+details summary::-webkit-details-marker{display:none}
+details ol{padding-left:18px}
+.modal-mask{
+  position:fixed;inset:0;background:rgba(20,20,20,.42);
+  display:none;align-items:center;justify-content:center;z-index:100;padding:24px;
+}
+.modal-mask.show{display:flex}
+.modal{
+  background:#fff;border-radius:8px;max-width:520px;width:100%;
+  padding:44px 42px 34px;position:relative;
+  animation:pop .22s ease;
+}
+@keyframes pop{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+.modal-tag{font-family:var(--mono);font-size:11px;letter-spacing:.26em;color:var(--gray-2);margin-bottom:22px}
+.modal-q{font-size:21px;font-weight:500;line-height:1.7;letter-spacing:.01em}
+.modal-q .num{font-family:var(--mono);color:var(--gray-2);font-size:14px;margin-right:10px}
+.modal-actions{display:flex;gap:10px;margin-top:34px;justify-content:flex-end}
+.modal-close{position:absolute;top:16px;right:16px;color:var(--gray-2);padding:5px;display:flex}
+.modal-close:hover{color:var(--ink)}
+.modal-close svg{width:17px;height:17px;stroke-width:1.8}
+.toast{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:#fff;font-size:13px;padding:10px 22px;border-radius:var(--radius);
+  opacity:0;pointer-events:none;transition:all .2s;z-index:200;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ============ 移动端 ============ */
+.mobile-top{display:none;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+.mobile-top .brand{margin:0}
+.mobile-menu{display:flex;padding:6px}
+.mobile-menu svg{width:22px;height:22px;stroke-width:1.6}
+.menu-mask{display:none}
+@media (max-width:860px){
+  .app{flex-direction:column}
+  .sidebar{
+    position:fixed;left:0;top:0;bottom:0;z-index:90;height:100vh;
+    transform:translateX(-100%);transition:transform .2s;width:250px;
+  }
+  .sidebar.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.18)}
+  .menu-mask{display:block;position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.34);opacity:0;pointer-events:none;transition:opacity .2s}
+  .menu-mask.show{opacity:1;pointer-events:auto}
+  .mobile-top{display:flex}
+  .topbar{padding:22px 20px 14px}
+  .content{padding:4px 20px 60px}
+  .stat-grid{grid-template-columns:1fr;gap:12px}
+  .overview-cols{grid-template-columns:1fr}
+  .hello h1{font-size:24px}
+  .pomo-ring{width:230px;height:230px}
+  .pomo-time .t{font-size:48px}
+  .modal{padding:36px 26px 28px}
+  .mobile-menu{width:44px;height:44px;justify-content:center;align-items:center}
+  .input,textarea.input,select{font-size:16px}
+  .todo-add{flex-direction:column}
+  .pomo-controls .btn{padding:11px 22px}
+}
+</style>
+</head>
+<body>
+<!-- ===== 启动页 ===== -->
+<div id="splash">
+  <div class="splash-inner">
+    <div class="splash-logo"><i></i><i></i><i></i><i></i></div>
+    <div class="splash-title">个人工作台</div>
+    <div class="splash-sub" id="splashDate">FOCUS DESK</div>
+    <button class="btn splash-enter" id="enterBtn">开 始</button>
+    <div class="splash-hint">专注 · 诚实 · 靠近愿景</div>
+  </div>
+</div>
+
+<div class="app">
+  <!-- ===== 移动端顶栏 ===== -->
+  <div class="mobile-top">
+    <div class="brand"><span class="mark"></span>工作台</div>
+    <button class="mobile-menu" id="menuBtn" aria-label="菜单">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- ===== 侧边栏 ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><span class="mark"></span>个人工作台</div>
+    <div class="brand-sub">FOCUS DESK</div>
+    <nav class="nav" id="nav">
+      <button class="nav-item" data-view="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        今日总览
+      </button>
+      <button class="nav-item" data-view="todo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="8 12 11 15 16 9"/></svg>
+        待办清单
+      </button>
+      <button class="nav-item" data-view="pomo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14.5 15.5"/><line x1="9" y1="2" x2="15" y2="2"/></svg>
+        番茄钟
+      </button>
+      <button class="nav-item" data-view="diary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h13a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3z"/><line x1="4" y1="20" x2="20" y2="20"/><line x1="8" y1="8" x2="15" y2="8"/><line x1="8" y1="12" x2="15" y2="12"/></svg>
+        日记
+      </button>
+      <button class="nav-item" data-view="ask">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.1.9-1.1 1.8"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>
+        灵魂拷问
+      </button>
+      <button class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15z"/></svg>
+        设置与同步
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      数据仅保存在本机浏览器<br>专注 · 诚实 · 靠近愿景
+    </div>
+  </aside>
+  <div class="menu-mask" id="menuMask"></div>
+
+  <!-- ===== 主区域 ===== -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="pageTitle">今日总览</div>
+        <div class="page-date" id="pageDate"></div>
+      </div>
+    </div>
+    <div class="content" id="content"><!-- 视图渲染处 --></div>
+  </main>
+</div>
+
+<!-- ===== 灵魂拷问弹窗 ===== -->
+<div class="modal-mask" id="askModal">
+  <div class="modal">
+    <button class="modal-close" id="askClose" aria-label="关闭">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+    </button>
+    <div class="modal-tag">PAUSE &amp; CHECK</div>
+    <div class="modal-q" id="askText"></div>
+    <div class="modal-actions">
+      <button class="btn subtle sm" id="askNext">换一句</button>
+      <button class="btn sm" id="askDone">回到当下</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 数据层 ================= */
+var STORE_KEY='focus-desk-v1';
+var DEFAULT_QUESTIONS=[
+  '我现在做的事，是为了成长，还是为了逃避？',
+  '如果有人看到我此刻的行为，他会觉得我在追求什么？',
+  '我此刻的选择和行为，是更靠近愿景，还是反愿景？'
+];
+/* 实际使用的问句池（可在页面中自定义，持久化到本机） */
+function getQuestions(){
+  return (state.questions && state.questions.length)?state.questions:DEFAULT_QUESTIONS;
+}
+var defaultState={
+  todos:[],
+  diary:{},
+  pomo:{},            // { '2026-10-08': {count:n, minutes:m} }
+  settings:{ focusLen:25, breakLen:5, askOn:false, askInterval:45, sound:true },
+  sync:{ token:'', gistId:'', auto:false, lastPush:null, lastPull:null, cloudAt:null },
+  localAt:null        // 本地数据最后修改时间（ISO）
+};
+function load(){
+  try{ var s=JSON.parse(localStorage.getItem(STORE_KEY)); }catch(e){ s=null; }
+  var st=s||{};
+  st.todos=st.todos||[]; st.diary=st.diary||{}; st.pomo=st.pomo||{};
+  st.settings=Object.assign({},defaultState.settings,st.settings||{});
+  st.questions=Array.isArray(st.questions)&&st.questions.length?st.questions:DEFAULT_QUESTIONS.slice();
+  st.sync=Object.assign({token:'',gistId:'',auto:false,lastPush:null,lastPull:null,cloudAt:null},st.sync||{});
+  return st;
+}
+var state=load();
+var pushTimer=null;
+function save(){
+  state.localAt=new Date().toISOString();
+  localStorage.setItem(STORE_KEY,JSON.stringify(state));
+  /* 开启自动同步后，数据变更防抖推送 */
+  if(state.sync.auto && state.sync.token && state.sync.gistId){
+    clearTimeout(pushTimer);
+    pushTimer=setTimeout(function(){ cloudPush(true); },5000);
+  }
+}
+/* 可同步的数据（不含令牌本身） */
+function syncPayload(){
+  return {
+    app:'focus-desk', version:1, savedAt:new Date().toISOString(),
+    data:{ todos:state.todos, diary:state.diary, pomo:state.pomo, questions:state.questions, settings:state.settings }
+  };
+}
+function applyCloudData(d){
+  if(!d || typeof d!=='object') return false;
+  state.todos=Array.isArray(d.todos)?d.todos:[];
+  state.diary=(d.diary&&typeof d.diary==='object')?d.diary:{};
+  state.pomo=(d.pomo&&typeof d.pomo==='object')?d.pomo:{};
+  state.questions=Array.isArray(d.questions)&&d.questions.length?d.questions:DEFAULT_QUESTIONS.slice();
+  if(d.settings) state.settings=Object.assign({},state.settings,d.settings);
+  state.localAt=new Date().toISOString();
+  localStorage.setItem(STORE_KEY,JSON.stringify(state));
+  return true;
+}
+function todayKey(d){ d=d||new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fmtDate(d){ d=d||new Date(); var w=['日','一','二','三','四','五','六']; return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日 星期'+w[d.getDay()]; }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ================= 通用 UI ================= */
+var content=document.getElementById('content');
+var titles={overview:'今日总览',todo:'待办清单',pomo:'番茄钟',diary:'日记',ask:'灵魂拷问',settings:'设置与同步'};
+function toast(msg){
+  var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove('show');},1800);
+}
+function todayPomo(){ var k=todayKey(); return state.pomo[k]||{count:0,minutes:0}; }
+function todayTodos(){ var k=todayKey(); return state.todos.filter(function(t){return t.day===k;}); }
+function allUndone(){ return state.todos.filter(function(t){return !t.done;}); }
+
+/* ================= 视图：总览 ================= */
+function viewOverview(){
+  var k=todayKey(), list=state.todos.filter(function(t){return t.day===k;});
+  var done=list.filter(function(t){return t.done;}).length;
+  var rate=list.length?Math.round(done/list.length*100):0;
+  var pm=todayPomo();
+  var recent=list.slice(0,6);
+  if(!recent.length){
+    var undone=state.todos.filter(function(t){return !t.done;}).slice(0,6);
+    recent=undone;
+  }
+  var hour=new Date().getHours();
+  var greet=hour<5?'夜深了':hour<11?'早上好':hour<14?'中午好':hour<18?'下午好':'晚上好';
+  var h='<div class="hello"><h1>'+greet+'，今天也请诚实地靠近愿景。</h1>'+
+        '<p>'+fmtDate()+'</p></div>';
+  h+='<div class="stat-grid">'+
+    '<div class="stat"><div class="stat-num">'+done+'<small>/ '+list.length+'</small></div><div class="stat-label">今日已完成待办</div></div>'+
+    '<div class="stat"><div class="stat-num">'+rate+'<small>%</small></div><div class="stat-label">今日完成率</div></div>'+
+    '<div class="stat"><div class="stat-num">'+pm.count+'<small>个 · '+pm.minutes+'分</small></div><div class="stat-label">今日番茄 / 专注时长</div></div>'+
+  '</div>';
+  h+='<div class="overview-cols">'+
+    '<div class="card"><div class="card-h">最近待办 <button class="btn subtle sm" onclick="location.hash=\'#/todo\'">去添加</button></div>'+
+      (recent.length?'<ul class="mini-list">'+recent.map(function(t){
+        return '<li class="'+(t.done?'done':'')+'"><span class="mini-dot"></span><span>'+escapeHtml(t.text)+'</span></li>';
+      }).join('')+'</ul>':'<div class="empty">还没有待办<br>去清单里写下今天最重要的事</div>')+
+    '</div>'+
+    '<div class="card"><div class="card-h">快速开始</div>'+
+      '<button class="btn" style="width:100%;margin-bottom:10px" onclick="location.hash=\'#/pomo\'">开始一个番茄钟</button>'+
+      '<button class="btn ghost" style="width:100%;margin-bottom:10px" onclick="manualAsk()">现在拷问自己一次</button>'+
+      '<button class="btn subtle" style="width:100%" onclick="location.hash=\'#/diary\'">写今天的日记</button>'+
+    '</div>'+
+  '</div>';
+  return h;
+}
+
+/* ================= 迷你日历（待办/日记共用） ================= */
+var cal={todo:null,diary:null};
+['todo','diary'].forEach(function(k){
+  var d=new Date();
+  cal[k]={y:d.getFullYear(),m:d.getMonth(),sel:todayKey()};
+});
+function keyOf(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+function prettyDay(key){
+  var parts=key.split('-'), y=+parts[0],m=+parts[1]-1,d=+parts[2];
+  var dt=new Date(y,m,d), today=todayKey();
+  var t=new Date(); t.setHours(0,0,0,0);
+  var diff=Math.round((new Date(y,m,d)-t)/86400000);
+  var label=diff===0?'今天':diff===1?'明天':diff===-1?'昨天':'';
+  var w=['周日','周一','周二','周三','周四','周五','周六'][dt.getDay()];
+  return {text:(m+1)+'月'+d+'日 '+w+(label?' · '+label:''),isToday:key===today};
+}
+function calMarks(kind){ /* 返回 {key:'has'|'done'} */
+  var marks={};
+  if(kind==='todo'){
+    var byDay={};
+    state.todos.forEach(function(t){
+      if(!byDay[t.day]) byDay[t.day]={all:0,done:0};
+      byDay[t.day].all++; if(t.done) byDay[t.day].done++;
+    });
+    Object.keys(byDay).forEach(function(k){
+      marks[k]=byDay[k].all>0&&byDay[k].done===byDay[k].all?'done-all':'has';
+    });
+  }else{
+    Object.keys(state.diary).forEach(function(k){ if((state.diary[k]||'').trim()) marks[k]='has'; });
+  }
+  return marks;
+}
+function miniCalendar(kind){
+  var c=cal[kind], marks=calMarks(kind);
+  var startWd=(new Date(c.y,c.m,1).getDay()+6)%7; /* 周一为一周起点 */
+  var daysThis=new Date(c.y,c.m+1,0).getDate();
+  var daysPrev=new Date(c.y,c.m,0).getDate();
+  var cells=[];
+  for(var i=0;i<startWd;i++){
+    var d=daysPrev-startWd+1+i;
+    cells.push({y:c.m===0?c.y-1:c.y,m:c.m===0?11:c.m-1,d:d,off:true});
+  }
+  for(var dd=1;dd<=daysThis;dd++) cells.push({y:c.y,m:c.m,d:dd,off:false});
+  var n=1;
+  while(cells.length%7!==0){
+    cells.push({y:c.m===11?c.y+1:c.y,m:c.m===11?0:c.m+1,d:n++,off:true});
+  }
+  var wd=['一','二','三','四','五','六','日'];
+  var h='<div class="mini-cal"><div class="cal-head">'+
+    '<div class="ym">'+c.y+' 年 '+(c.m+1)+' 月</div>'+
+    '<div class="cal-nav">'+
+      '<button data-cal="'+kind+'" data-act="prev" aria-label="上个月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 6 9 12 15 18"/></svg></button>'+
+      '<button class="today-btn" data-cal="'+kind+'" data-act="today">今</button>'+
+      '<button data-cal="'+kind+'" data-act="next" aria-label="下个月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 6 15 12 9 18"/></svg></button>'+
+    '</div></div>'+
+    '<div class="cal-grid">'+
+      wd.map(function(w){return '<div class="cal-wd">'+w+'</div>';}).join('');
+  cells.forEach(function(cell){
+    var key=keyOf(cell.y,cell.m,cell.d);
+    var cls=['cal-day'];
+    if(cell.off) cls.push('off');
+    if(key===todayKey()) cls.push('today');
+    if(key===c.sel) cls.push('sel');
+    if(marks[key]) cls.push(marks[key]);
+    h+='<div class="'+cls.join(' ')+'" data-cal="'+kind+'" data-day="'+key+'">'+cell.d+'<span class="din"></span></div>';
+  });
+  h+='</div></div>';
+  return h;
+}
+function bindCalendar(kind,onChange){
+  document.querySelectorAll('[data-cal="'+kind+'"]').forEach(function(el){
+    el.addEventListener('click',function(){
+      var act=el.dataset.act, day=el.dataset.day, c=cal[kind];
+      if(act==='prev'){ c.m--; if(c.m<0){c.m=11;c.y--;} }
+      else if(act==='next'){ c.m++; if(c.m>11){c.m=0;c.y++;} }
+      else if(act==='today'){ var d=new Date(); c.y=d.getFullYear(); c.m=d.getMonth(); c.sel=todayKey(); }
+      else if(day){
+        var parts=day.split('-').map(Number);
+        c.y=parts[0]; c.m=parts[1]-1; c.sel=day;
+      }else return;
+      if(onChange) onChange(); else render();
+    });
+  });
+}
+
+/* ================= 视图：待办 ================= */
+var todoFilter='all';
+function viewTodo(){
+  var k=cal.todo.sel;
+  var dayList=state.todos.filter(function(t){return t.day===k;});
+  var list=dayList;
+  if(todoFilter==='active') list=list.filter(function(t){return !t.done;});
+  if(todoFilter==='done') list=list.filter(function(t){return t.done;});
+  var doneCount=dayList.filter(function(t){return t.done;}).length;
+  var pd=prettyDay(k);
+  var h='<div class="cal-layout">'+
+    '<div class="card">'+miniCalendar('todo')+'</div>'+
+    '<div class="card">'+
+    '<div class="sel-date-title"><span>'+pd.text+'</span>'+
+      '<span class="sub">完成 '+doneCount+' / '+dayList.length+' 件</span></div>'+
+    '<div class="todo-add">'+
+      '<input class="input" id="todoInput" placeholder="'+(pd.isToday?'写一件今天要做的事，回车添加…':'为 '+pd.text+' 添加待办…')+'" autocomplete="off">'+
+      '<button class="btn" id="todoAddBtn">添加</button>'+
+    '</div>'+
+    '<div class="todo-filters">'+
+      chip('all','全部')+chip('active','未完成')+chip('done','已完成')+
+    '</div>'+
+    '<div id="todoList">'+todoListHtml(list)+'</div>'+
+    '<div class="todo-foot"><span>'+doneCount+' / '+dayList.length+' 件已完成</span>'+
+      '<button class="btn subtle sm" id="clearDone">清除当日已完成</button></div>'+
+  '</div></div>';
+  return h;
+}
+function chip(v,name){ return '<button class="chip '+(todoFilter===v?'active':'')+'" data-filter="'+v+'">'+name+'</button>'; }
+function todoListHtml(list){
+  if(!list.length) return '<div class="empty">'+(todoFilter==='done'?'还没有完成的事项':'清单是空的，先添加一件吧')+'</div>';
+  return list.map(function(t){
+    return '<div class="todo-item '+(t.done?'done':'')+'" data-id="'+t.id+'">'+
+      '<button class="todo-check" data-act="toggle" aria-label="完成"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="5 12 10 17 19 7"/></svg></button>'+
+      '<div class="todo-body"><div class="todo-text">'+escapeHtml(t.text)+'</div></div>'+
+      '<button class="todo-del" data-act="del" aria-label="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="4 7 20 7"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13h10l1-13"/></svg></button>'+
+    '</div>';
+  }).join('');
+}
+function addTodo(){
+  var inp=document.getElementById('todoInput');
+  var text=inp.value.trim(); if(!text) return;
+  state.todos.unshift({id:uid(),text:text,done:false,day:cal.todo.sel,createdAt:Date.now()});
+  save(); inp.value=''; render(); document.getElementById('todoInput').focus();
+}
+function bindTodo(){
+  bindCalendar('todo');
+  var inp=document.getElementById('todoInput');
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')addTodo();});
+  document.getElementById('todoAddBtn').onclick=addTodo;
+  document.querySelectorAll('.chip').forEach(function(c){
+    c.onclick=function(){todoFilter=c.dataset.filter;render();};
+  });
+  document.getElementById('todoList').addEventListener('click',function(e){
+    var item=e.target.closest('.todo-item'); if(!item)return;
+    var id=item.dataset.id, act=e.target.closest('[data-act]')?e.target.closest('[data-act]').dataset.act:null;
+    var todo=state.todos.find(function(t){return t.id===id;}); if(!todo)return;
+    if(act==='toggle'){ todo.done=!todo.done; save(); render(); }
+    if(act==='del'){ state.todos=state.todos.filter(function(t){return t.id!==id;}); save(); render(); }
+  });
+  document.getElementById('clearDone').onclick=function(){
+    var k=cal.todo.sel;
+    state.todos=state.todos.filter(function(t){return !(t.done&&t.day===k);});
+    save(); render(); toast('已清除当日完成项');
+  };
+}
+
+/* ================= 视图：番茄钟 ================= */
+var pomo={phase:'focus',remaining:state.settings.focusLen*60,running:false,timer:null,auto:false,round:0};
+function viewPomo(){
+  var pm=todayPomo();
+  var s=state.settings;
+  var notifySupported=('Notification' in window);
+  var notifyGranted=notifySupported&&Notification.permission==='granted';
+  return '<div class="card"><div class="pomo-wrap">'+
+    '<div class="pomo-tabs">'+
+      '<button class="pomo-tab '+(pomo.phase==='focus'?'active':'')+'" data-mode="focus">专注</button>'+
+      '<button class="pomo-tab '+(pomo.phase==='break'?'active':'')+'" data-mode="break">休息</button>'+
+    '</div>'+
+    '<div class="pomo-ring">'+
+      '<svg viewBox="0 0 280 280"><circle class="ring-bg" cx="140" cy="140" r="130"/>'+
+      '<circle class="ring-fg" id="ringFg" cx="140" cy="140" r="130"/></svg>'+
+      '<div class="pomo-time"><div class="t" id="pomoTime">25:00</div><div class="phase" id="pomoPhase">FOCUS · 准备开始</div></div>'+
+    '</div>'+
+    '<div class="pomo-controls">'+
+      '<button class="btn ghost" id="pomoReset">重置</button>'+
+      '<button class="btn" id="pomoStart">开始专注</button>'+
+    '</div>'+
+    '<div class="pomo-round muted" id="pomoRound">点击开始，自动进入 25 分钟专注 → 5 分钟休息循环</div>'+
+    '<div class="pomo-settings" style="margin-top:18px">'+
+      '<label>专注 <input type="number" id="setFocus" min="1" max="120" value="'+s.focusLen+'"> 分</label>'+
+      '<label>休息 <input type="number" id="setBreak" min="1" max="60" value="'+s.breakLen+'"> 分</label>'+
+      '<label class="pomo-check"><input type="checkbox" id="setSound" '+(s.sound?'checked':'')+'> 铃声提醒</label>'+
+      (notifySupported?'<button class="btn subtle sm" id="setNotify">'+(notifyGranted?'系统通知已开启 · 点此测试':'开启系统通知')+'</button>':'')+
+    '</div>'+
+    '<p class="muted" style="font-size:12px;margin-top:10px;line-height:1.7">铃声只要页面开着就会响；系统通知请保持本页面打开，窗口最小化或切到其他应用时提醒最明显。手机需把工作台安装到主屏幕后才允许通知。</p>'+
+    '<div class="pomo-stats">'+
+      '<div class="pomo-stat"><div class="n">'+pm.count+'</div><div class="l">今日番茄</div></div>'+
+      '<div class="pomo-stat"><div class="n">'+pm.minutes+'</div><div class="l">专注分钟</div></div>'+
+    '</div>'+
+  '</div></div>';
+}
+function ringFraction(){
+  var total=(pomo.phase==='focus'?state.settings.focusLen:state.settings.breakLen)*60;
+  return pomo.remaining/total;
+}
+function fmtClock(sec){
+  var m=Math.floor(sec/60),ss=sec%60;
+  return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+}
+function paintPomo(){
+  var clock=fmtClock(pomo.remaining);
+  var inFocus=pomo.phase==='focus';
+  var phaseText,roundText,startText;
+  if(!pomo.auto && !pomo.running && pomo.remaining===(inFocus?state.settings.focusLen:state.settings.breakLen)*60 && pomo.round===0){
+    phaseText=inFocus?'FOCUS · 准备开始':'BREAK · 准备休息';
+    roundText='点击开始，自动进入 '+state.settings.focusLen+' 分钟专注 → '+state.settings.breakLen+' 分钟休息循环';
+    startText=inFocus?'开始专注':'开始休息';
+  }else if(inFocus){
+    phaseText='FOCUS · 第 '+Math.max(1,pomo.round+(pomo.auto?1:0))+' 轮专注';
+    roundText=pomo.running?'保持专注，结束后自动进入休息':'已暂停，点击继续';
+    startText=pomo.running?'暂停':'继续';
+  }else{
+    phaseText='BREAK · 休息中';
+    roundText=pomo.running?'放松一下，休息结束自动开始下一轮专注':'已暂停，点击继续';
+    startText=pomo.running?'暂停':'继续';
+  }
+  var el=document.getElementById('pomoTime');
+  if(el){
+    el.textContent=clock;
+    document.getElementById('pomoPhase').textContent=phaseText;
+    document.getElementById('pomoRound').textContent=roundText;
+    document.getElementById('pomoStart').textContent=startText;
+    var C=2*Math.PI*130;
+    var ring=document.getElementById('ringFg');
+    ring.style.strokeDasharray=C;
+    ring.style.strokeDashoffset=C*(1-ringFraction());
+    document.querySelectorAll('.pomo-tab').forEach(function(t){
+      t.classList.toggle('active',t.dataset.mode===pomo.phase);
+    });
+  }
+  /* 标题栏同步倒计时，切到别的标签页也能看到 */
+  if(pomo.running){ document.title=clock+(inFocus?' · 专注中':' · 休息中')+' — 个人工作台'; }
+  else if(el){ document.title='个人专注工作台'; }
+}
+function stopTimer(){ if(pomo.timer){clearInterval(pomo.timer);pomo.timer=null;} }
+function scheduleTick(){
+  stopTimer();
+  pomo.timer=setInterval(function(){
+    pomo.remaining--;
+    if(pomo.remaining<=0){ completePhase(); } else paintPomo();
+  },1000);
+}
+/* 阶段结束：自动衔接下一阶段，无需手动点击 */
+function completePhase(){
+  stopTimer();
+  if(pomo.phase==='focus'){
+    var k=todayKey(); state.pomo[k]=state.pomo[k]||{count:0,minutes:0};
+    state.pomo[k].count++; state.pomo[k].minutes+=state.settings.focusLen; save();
+    pomo.round++;
+    pomo.phase='break';
+    pomo.remaining=state.settings.breakLen*60;
+    chime('break');
+    notify('专注完成','做得好，休息 '+state.settings.breakLen+' 分钟');
+  }else{
+    pomo.phase='focus';
+    pomo.remaining=state.settings.focusLen*60;
+    chime('focus');
+    notify('休息结束','开始第 '+(pomo.round+1)+' 轮专注');
+  }
+  pomo.running=true;
+  scheduleTick();
+  paintPomo();
+}
+
+/* ---------- 铃声（WebAudio 合成，无需外部文件） ---------- */
+var audioCtx=null;
+function initAudio(){
+  if(!audioCtx){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ audioCtx=null; } }
+  if(audioCtx&&audioCtx.state==='suspended'){ audioCtx.resume(); }
+}
+function tone(freq,delay,dur,vol){
+  if(!audioCtx)return;
+  var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type='sine'; o.frequency.value=freq;
+  o.connect(g); g.connect(audioCtx.destination);
+  var t=audioCtx.currentTime+delay;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.start(t); o.stop(t+dur+0.05);
+}
+function chime(kind){
+  if(!state.settings.sound)return;
+  initAudio(); if(!audioCtx)return;
+  if(kind==='focus'){ /* 上行两音：开始专注 */ tone(659.25,0,.35,.2); tone(880,0.2,.5,.2); }
+  else{ /* 下行三音：放松休息 */ tone(880,0,.3,.18); tone(659.25,0.18,.3,.18); tone(523.25,0.36,.6,.18); }
+}
+
+/* ---------- 系统通知（铃声 + toast 兜底） ---------- */
+function notify(title,body){
+  toast(body);
+  try{
+    if(location.protocol==='file:') return; /* 本地 exe/file 源无法弹系统通知，靠铃声 */
+    if('Notification' in window && Notification.permission==='granted'){
+      var n=new Notification(title,{body:body,tag:'focus-desk',renotify:true});
+      setTimeout(function(){try{n.close();}catch(e){}},8000);
+    }
+  }catch(e){}
+}
+function askNotification(){
+  if(!('Notification' in window)){ toast('当前浏览器不支持系统通知，铃声提醒不受影响'); return; }
+  if(location.protocol==='file:'){
+    toast('本地版受浏览器限制无法弹系统通知，请以铃声为准；手机安装版/在线版支持系统通知');
+    return;
+  }
+  if(Notification.permission==='granted'){
+    try{ var t=new Notification('通知正常',{body:'以后番茄钟切换时会在这里提醒你（请保持页面打开）'});
+      setTimeout(function(){try{t.close();}catch(e){}},8000); }catch(e){}
+    toast('系统通知已开启，已发一条测试通知');
+    return;
+  }
+  if(Notification.permission==='denied'){
+    toast('通知已被拒绝：点地址栏左侧锁形图标 → 通知 → 允许，Windows 设置里也要允许浏览器通知');
+    return;
+  }
+  Notification.requestPermission().then(function(p){
+    var btn=document.getElementById('setNotify');
+    if(p==='granted'){
+      toast('系统通知已开启，已发一条测试通知');
+      if(btn) btn.textContent='系统通知已开启';
+      try{ var t=new Notification('通知正常',{body:'以后番茄钟切换时会在这里提醒你（请保持页面打开）'});
+        setTimeout(function(){try{t.close();}catch(e){}},8000); }catch(e){}
+    }else{
+      toast('未开启，将使用铃声与页面内提示');
+      if(btn) btn.textContent='开启系统通知';
+    }
+  });
+}
+
+function bindPomo(){
+  paintPomo();
+  document.getElementById('pomoStart').onclick=function(){
+    initAudio();
+    if('Notification' in window && Notification.permission==='default'){ askNotification(); }
+    if(pomo.running){ /* 暂停 */
+      pomo.running=false; stopTimer(); paintPomo();
+    }else{ /* 开始 / 继续，进入自动循环 */
+      pomo.auto=true; pomo.running=true;
+      if(!pomo.timer){ chime(pomo.phase==='focus'?'focus':'break'); }
+      scheduleTick(); paintPomo();
+    }
+  };
+  document.getElementById('pomoReset').onclick=function(){
+    stopTimer(); pomo.running=false; pomo.auto=false;
+    pomo.phase='focus'; pomo.round=0; pomo.remaining=state.settings.focusLen*60;
+    document.title='个人专注工作台';
+    paintPomo();
+  };
+  document.querySelectorAll('.pomo-tab').forEach(function(t){
+    t.onclick=function(){ /* 手动切换阶段会退出自动循环并暂停 */
+      stopTimer(); pomo.running=false; pomo.auto=false;
+      pomo.phase=t.dataset.mode; pomo.round=0;
+      pomo.remaining=(pomo.phase==='focus'?state.settings.focusLen:state.settings.breakLen)*60;
+      paintPomo();
+    };
+  });
+  document.getElementById('setFocus').onchange=function(){
+    var v=Math.max(1,Math.min(120,parseInt(this.value)||25)); this.value=v;
+    state.settings.focusLen=v; save();
+    if(pomo.phase==='focus'&&!pomo.running){pomo.remaining=v*60;paintPomo();}
+  };
+  document.getElementById('setBreak').onchange=function(){
+    var v=Math.max(1,Math.min(60,parseInt(this.value)||5)); this.value=v;
+    state.settings.breakLen=v; save();
+    if(pomo.phase==='break'&&!pomo.running){pomo.remaining=v*60;paintPomo();}
+  };
+  document.getElementById('setSound').onchange=function(){
+    state.settings.sound=this.checked; save();
+    if(this.checked){ chime('focus'); }
+    toast(this.checked?'铃声已开启':'铃声已关闭');
+  };
+  var nb=document.getElementById('setNotify');
+  if(nb) nb.onclick=askNotification;
+}
+
+/* ================= 视图：日记 ================= */
+var diaryDirty=false;
+function flushDiary(){ /* 切换日期/视图前把当前编辑内容存下 */
+  var ta=document.getElementById('diaryText');
+  if(ta){ state.diary[cal.diary.sel]=ta.value; localStorage.setItem(STORE_KEY,JSON.stringify(state)); }
+}
+function viewDiary(){
+  var k=cal.diary.sel;
+  var text=state.diary[k]||'';
+  var pd=prettyDay(k);
+  return '<div class="cal-layout">'+
+    '<div class="card">'+miniCalendar('diary')+'</div>'+
+    '<div class="card">'+
+    '<div class="sel-date-title"><span>'+pd.text+'</span>'+
+      '<span class="sub">'+k+'</span></div>'+
+    '<textarea class="input diary-text" id="diaryText" placeholder="'+(pd.isToday?'今天做了什么？哪些选择靠近了愿景，哪些是在逃避？如实写下来…':'记录 '+pd.text+' 这一天…')+'">'+escapeHtml(text)+'</textarea>'+
+    '<div class="diary-save"><span id="diaryStatus">'+(text?'已自动保存':'内容自动保存在本机')+'</span>'+
+      '<button class="btn sm" id="diarySave">保存</button></div>'+
+  '</div></div>';
+}
+function bindDiary(){
+  bindCalendar('diary',function(){ flushDiary(); render(); });
+  var ta=document.getElementById('diaryText');
+  var status=document.getElementById('diaryStatus');
+  function saveDiary(silent){
+    state.diary[cal.diary.sel]=ta.value; save(); diaryDirty=false;
+    status.textContent='已自动保存 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+    if(!silent) toast('日记已保存');
+  }
+  ta.addEventListener('input',function(){
+    diaryDirty=true; status.textContent='编辑中…';
+    clearTimeout(ta._h); ta._h=setTimeout(function(){saveDiary(true);},1200);
+  });
+  document.getElementById('diarySave').onclick=function(){saveDiary(false);};
+}
+
+/* ================= 视图：灵魂拷问设置 ================= */
+function viewAsk(){
+  var s=state.settings;
+  return '<div class="card">'+
+    '<div class="card-h">定时拷问</div>'+
+    '<div class="ask-settings">'+
+      '<label class="switch"><input type="checkbox" id="askSwitch" '+(s.askOn?'checked':'')+'><span class="track"></span></label>'+
+      '<div class="ask-interval">每隔 <input type="number" id="askInterval" min="5" max="240" value="'+s.askInterval+'"> 分钟，随机弹出一句</div>'+
+    '</div>'+
+    '<p class="muted" style="font-size:13px;margin-top:14px">保持本页面打开，计时器才会运行。弹窗会从下方问句库里随机抽取。</p>'+
+  '</div>'+
+  '<div class="card">'+
+    '<div class="card-h">问句库（'+state.questions.length+' 句）<button class="btn subtle sm" id="qReset">恢复默认三句</button></div>'+
+    '<div id="qList">'+qListHtml()+'</div>'+
+    '<div style="margin-top:18px">'+
+      '<textarea class="input" id="qNew" rows="2" placeholder="写一句新的拷问，添加后会进入随机弹窗…"></textarea>'+
+      '<button class="btn" id="qAdd" style="margin-top:10px">添加这句</button>'+
+    '</div>'+
+    '<button class="btn ghost" style="margin-top:24px" onclick="manualAsk()">现在拷问自己一次</button>'+
+  '</div>';
+}
+function qListHtml(){
+  if(!state.questions.length){
+    return '<div class="empty">问句库是空的，添加一句，或恢复默认三句</div>';
+  }
+  return state.questions.map(function(q,i){
+    return '<div class="q-row">'+
+      '<span class="q-idx mono">'+String(i+1).padStart(2,'0')+'</span>'+
+      '<textarea class="input q-edit" rows="2" data-i="'+i+'">'+escapeHtml(q)+'</textarea>'+
+      '<button class="q-del" data-i="'+i+'" aria-label="删除这句" title="删除这句">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="4 7 20 7"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13h10l1-13"/></svg>'+
+      '</button>'+
+    '</div>';
+  }).join('');
+}
+function bindAsk(){
+  var sw=document.getElementById('askSwitch');
+  sw.onchange=function(){
+    state.settings.askOn=sw.checked; save(); resetAskTimer();
+    toast(sw.checked?'定时拷问已开启':'定时拷问已关闭');
+  };
+  document.getElementById('askInterval').onchange=function(){
+    var v=Math.max(5,Math.min(240,parseInt(this.value)||45)); this.value=v;
+    state.settings.askInterval=v; save(); resetAskTimer();
+  };
+  /* 编辑已有问句：输入即保存（保留焦点，不重渲染） */
+  document.querySelectorAll('.q-edit').forEach(function(ta){
+    ta.addEventListener('input',function(){
+      var i=parseInt(this.dataset.i,10);
+      state.questions[i]=this.value; save();
+    });
+  });
+  /* 删除 */
+  document.getElementById('qList').addEventListener('click',function(e){
+    var btn=e.target.closest('.q-del'); if(!btn)return;
+    var i=parseInt(btn.dataset.i,10);
+    state.questions.splice(i,1); save();
+    if(lastQ>=state.questions.length) lastQ=-1;
+    render(); toast('已删除');
+  });
+  /* 添加 */
+  function addQ(){
+    var inp=document.getElementById('qNew');
+    var v=inp.value.trim(); if(!v){ inp.focus(); return; }
+    state.questions.push(v); save(); inp.value='';
+    render(); toast('已加入问句库');
+  }
+  document.getElementById('qAdd').onclick=addQ;
+  document.getElementById('qNew').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); addQ(); }
+  });
+  /* 恢复默认 */
+  document.getElementById('qReset').onclick=function(){
+    state.questions=DEFAULT_QUESTIONS.slice(); lastQ=-1; save(); render();
+    toast('已恢复默认三句');
+  };
+}
+var askTimer=null, lastQ=-1;
+function pickQuestion(){
+  var pool=getQuestions();
+  var i; do{ i=Math.floor(Math.random()*pool.length); }while(pool.length>1&&i===lastQ);
+  lastQ=i; return {i:i,q:pool[i]};
+}
+function showAsk(afterPomo){
+  var picked=pickQuestion();
+  document.getElementById('askText').innerHTML='<span class="num">0'+(picked.i+1)+'</span>'+picked.q;
+  document.getElementById('askModal').classList.add('show');
+}
+function closeAsk(){ document.getElementById('askModal').classList.remove('show'); resetAskTimer(); }
+function manualAsk(){ showAsk(false); }
+function resetAskTimer(){
+  if(askTimer){clearTimeout(askTimer);askTimer=null;}
+  if(state.settings.askOn){ askTimer=setTimeout(function(){showAsk(false);},state.settings.askInterval*60000); }
+}
+document.getElementById('askClose').onclick=closeAsk;
+document.getElementById('askDone').onclick=closeAsk;
+document.getElementById('askNext').onclick=function(){
+  var picked=pickQuestion();
+  document.getElementById('askText').innerHTML='<span class="num">0'+(picked.i+1)+'</span>'+picked.q;
+};
+document.getElementById('askModal').addEventListener('click',function(e){ if(e.target===this)closeAsk(); });
+resetAskTimer();
+
+/* ================= 视图：设置与同步 ================= */
+function fmtTime(iso){
+  if(!iso) return '—';
+  try{ var d=new Date(iso); return d.toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return '—'; }
+}
+function isStandalone(){
+  return window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+}
+function installCardHtml(){
+  if(isStandalone()){
+    return '<div class="card" style="border-color:var(--ink)"><div class="card-h">安装状态</div>'+
+      '<p class="muted" style="font-size:13.5px;line-height:1.9;margin:0">已安装到主屏幕，可直接从桌面图标启动，离线也能使用。</p></div>';
+  }
+  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  var canInstall=!!window._deferredPWA;
+  if(canInstall){
+    return '<div class="card" style="border-color:var(--ink)"><div class="card-h">安装到桌面 / 主屏幕</div>'+
+      '<p class="muted" style="font-size:13.5px;line-height:1.9;margin-bottom:16px">安装后从桌面图标启动，独立窗口运行（没有浏览器地址栏），可离线使用。</p>'+
+      '<button class="btn" id="pwaInstallBtn">立即安装</button></div>';
+  }
+  if(isIOS){
+    return '<div class="card"><div class="card-h">安装到主屏幕（iPhone / iPad）</div>'+
+      '<ol style="margin:0 0 0 20px;font-size:13.5px;line-height:2.1;color:var(--ink-2)">'+
+      '<li>必须使用系统自带的 <b>Safari</b> 打开本页面（Chrome/Edge 无法安装）</li>'+
+      '<li>点底部工具栏的<b>分享按钮</b>（方框向上箭头）</li>'+
+      '<li>选择<b>“添加到主屏幕”</b>，再点右上角“添加”</li></ol>'+
+      '<p class="muted" style="font-size:12.5px;line-height:1.8;margin:14px 0 0">安装后桌面出现“工作台”图标，点开为全屏独立窗口。</p></div>';
+  }
+  return '<div class="card"><div class="card-h">安装到桌面 / 主屏幕</div>'+
+    '<p class="muted" style="font-size:13.5px;line-height:1.9;margin-bottom:10px">若浏览器已允许安装，此处会出现“立即安装”按钮；也可以手动安装：</p>'+
+    '<ol style="margin:0 0 0 20px;font-size:13.5px;line-height:2.1;color:var(--ink-2)">'+
+      '<li><b>安卓</b>：用 Chrome 或 Edge 打开本页面，点右上角 ⋮ 菜单 → <b>安装应用 / 添加到主屏幕</b></li>'+
+      '<li><b>电脑</b>：Edge/Chrome 地址栏右侧的安装图标，或菜单 → 应用 → 安装此站点</li>'+
+      '<li>若菜单里没有安装项：完整打开页面并等待 10 秒，再刷新一次</li></ol>'+
+    '<p class="muted" style="font-size:12.5px;line-height:1.8;margin:14px 0 0">安装后从桌面图标启动，独立窗口、无浏览器地址栏、可离线使用。</p></div>';
+}
+function viewSettings(){
+  var sy=state.sync;
+  var configured=sy.token && sy.gistId;
+  return installCardHtml()+
+  '<div class="card">'+
+    '<div class="card-h">云同步（GitHub Gist 私人存储）</div>'+
+    '<p class="muted" style="font-size:13.5px;line-height:1.9;margin-bottom:18px">'+
+      '数据加密存放在你自己 GitHub 账号下的<b>私有 Gist</b>，手机、电脑打开同一个网址，拉取/推送即可互通；开启自动同步后，改动会自动上传，打开页面自动下载最新。</p>'+
+    '<label style="font-size:13px;color:var(--gray);display:block;margin-bottom:7px">GitHub 令牌（需要 Gist 读写权限）</label>'+
+    '<input class="input" id="syncToken" type="password" placeholder="ghp_ 或 github_pat_ 开头" value="'+escapeHtml(sy.token)+'" autocomplete="off" style="font-family:var(--mono);font-size:13px">'+
+    '<div class="ask-settings" style="margin-top:16px">'+
+      '<label class="switch"><input type="checkbox" id="syncAuto" '+(sy.auto?'checked':'')+'><span class="track"></span></label>'+
+      '<div class="ask-interval">自动同步（变更后自动推送，打开时自动拉取最新）</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px">'+
+      '<button class="btn" id="syncBind">'+(configured?'保存令牌':'绑定云端（自动查找备份）')+'</button>'+
+      '<button class="btn ghost" id="syncPush" '+(configured?'':'disabled')+'>推送到云</button>'+
+      '<button class="btn ghost" id="syncPull" '+(configured?'':'disabled')+'>从云拉取</button>'+
+    '</div>'+
+    '<div class="sync-status" id="syncStatus">'+
+      (configured?('已绑定云端仓库 · 上次推送 '+fmtTime(sy.lastPush)+' · 上次拉取 '+fmtTime(sy.lastPull)):'尚未绑定')+
+    '</div>'+
+    '<details style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">'+
+      '<summary style="font-size:13px;color:var(--gray);cursor:pointer">如何获取免费令牌（约 1 分钟，推荐方式一）</summary>'+
+      '<p style="margin:12px 0 6px;font-size:13px;font-weight:500">方式一：classic 令牌（ghp_ 开头，最简单）</p>'+
+      '<ol style="margin:0 0 12px 20px;font-size:13px;color:var(--ink-2);line-height:2">'+
+        '<li>打开 Settings → Developer settings → Personal access tokens → <b>Tokens (classic)</b>，或直接访问 <span class="mono">github.com/settings/tokens?type=classic</span></li>'+
+        '<li>点 Generate new token (classic)，备注随便填（如 focus-desk），过期时间自选</li>'+
+        '<li>权限<b>只勾选 gist 一项</b>，拉到底点 Generate token，复制 ghp_ 开头字符串</li>'+
+      '</ol>'+
+      '<p style="margin:0 0 6px;font-size:13px;font-weight:500">方式二：fine-grained 细粒度令牌（github_pat_ 开头）</p>'+
+      '<ol style="margin:0 0 12px 20px;font-size:13px;color:var(--ink-2);line-height:2">'+
+        '<li>Fine-grained tokens → Generate new token，Repository access 保持默认即可</li>'+
+        '<li>展开 <b>Account permissions</b>（注意不是 Repository permissions），找到 <b>Gists</b>，设为 <b>Read and write</b></li>'+
+        '<li>生成后复制 github_pat_ 开头字符串；没开 Gists 权限会报 404 Not Found</li>'+
+      '</ol>'+
+      '<p style="margin:0 0 10px;font-size:13px;color:var(--ink-2)">最后：粘贴到上方输入框，点“绑定云端”；新设备会自动找到已有备份并恢复。</p>'+
+      '<p class="muted" style="font-size:12.5px;margin-top:10px;line-height:1.8">令牌只保存在当前设备浏览器中、仅用于访问你自己的 Gist，不会经过任何第三方；不用了随时在 GitHub 删除该令牌即可失效。</p>'+
+    '</details>'+
+  '</div>'+
+  '<div class="card">'+
+    '<div class="card-h">本地备份文件</div>'+
+    '<p class="muted" style="font-size:13.5px;margin-bottom:16px">不依赖网络与账号：导出 JSON 备份，发给自己或存网盘，在任何设备的本页面导入即可恢复。</p>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
+      '<button class="btn" id="exportBtn">导出备份</button>'+
+      '<button class="btn ghost" id="importBtn">导入备份</button>'+
+      '<input type="file" id="importFile" accept=".json,application/json" style="display:none">'+
+    '</div>'+
+  '</div>'+
+  '<div class="card">'+
+    '<div class="card-h">数据说明</div>'+
+    '<p class="muted" style="font-size:13.5px;line-height:2">待办、番茄记录、日记、问句与设置保存在当前浏览器本地；在线版与 exe 版的本地存储相互独立，通过上方云同步或备份文件互通。</p>'+
+    '<button class="btn subtle sm" id="wipeBtn" style="margin-top:14px">清空本机全部数据</button>'+
+  '</div>';
+}
+function setSyncStatus(t){ var el=document.getElementById('syncStatus'); if(el) el.textContent=t; }
+function ghFetch(url,opt){
+  opt=opt||{};
+  opt.headers=Object.assign({'Accept':'application/vnd.github+json'},opt.headers||{});
+  opt.headers['Authorization']='Bearer '+state.sync.token.trim();
+  return fetch(url,opt).then(function(res){
+    return res.text().then(function(txt){
+      var json={}; try{ json=txt?JSON.parse(txt):{}; }catch(e){}
+      if(!res.ok){ var e=new Error(json.message||('HTTP '+res.status)); e.status=res.status; throw e; }
+      return json;
+    });
+  });
+}
+/* 把 GitHub 返回的错误翻译成可操作的中文提示 */
+function ghErrorText(err){
+  var st=err&&err.status, msg=(err&&err.message)||'';
+  if(st===401) return '令牌无效或复制不完整（401），请重新复制完整令牌';
+  if(st===403||st===404) return '令牌缺少 Gist 读写权限（'+st+'）：classic 令牌要勾选 gist；细粒度(github_pat_)令牌要在 Account permissions 里把 Gists 设为 Read and write';
+  if(st===422) return '请求被 GitHub 拒绝（422）：'+msg;
+  if(!st) return '连不上 GitHub（网络问题），请检查网络后重试';
+  return 'GitHub 错误（'+st+'）：'+msg;
+}
+function gistBody(){
+  return JSON.stringify({description:'focus-desk personal workbench backup',public:false,files:{'focus-desk.json':{content:JSON.stringify(syncPayload())}}});
+}
+/* 首次绑定：有令牌后先查找已有云端备份，找到就恢复；找不到才新建 */
+async function cloudBind(){
+  if(!state.sync.token.trim()){ toast('请先粘贴令牌'); return; }
+  setSyncStatus('正在查找云端备份…');
+  try{
+    if(!state.sync.gistId){
+      var list=await ghFetch('https://api.github.com/gists?per_page=100',{});
+      var found=(Array.isArray(list)?list:[]).find(function(g){return g.files&&g.files['focus-desk.json'];});
+      if(found){
+        state.sync.gistId=found.id;
+        localStorage.setItem(STORE_KEY,JSON.stringify(state));
+        var hasLocal=state.todos.length||Object.keys(state.diary).length;
+        await cloudPull(true,true);
+        setSyncStatus('已找到并恢复云端备份 · 上次拉取 '+fmtTime(state.sync.lastPull));
+        toast('已绑定并恢复云端备份');
+        render();
+        return;
+      }
+    }
+    await cloudPush(false);
+    toast('已创建云端备份');
+  }catch(err){
+    setSyncStatus('绑定失败：'+ghErrorText(err));
+    toast('绑定失败');
+  }
+}
+async function cloudPush(silent){
+  if(!state.sync.token.trim()){ toast('请先填写令牌'); return; }
+  setSyncStatus('正在推送…');
+  try{
+    var json;
+    if(state.sync.gistId){
+      json=await ghFetch('https://api.github.com/gists/'+state.sync.gistId,{method:'PATCH',body:gistBody()});
+    }else{
+      json=await ghFetch('https://api.github.com/gists',{method:'POST',body:gistBody()});
+      state.sync.gistId=json.id;
+    }
+    state.sync.lastPush=new Date().toISOString();
+    state.sync.cloudAt=state.localAt;
+    localStorage.setItem(STORE_KEY,JSON.stringify(state));
+    setSyncStatus('已绑定云端仓库 · 上次推送 '+fmtTime(state.sync.lastPush)+' · 上次拉取 '+fmtTime(state.sync.lastPull));
+    if(!silent) toast('已推送到云');
+  }catch(err){
+    setSyncStatus('推送失败：'+ghErrorText(err));
+    if(!silent) toast('推送失败，请看设置页提示');
+  }
+}
+async function cloudPull(silent,force){
+  if(!state.sync.token.trim()||!state.sync.gistId){ toast('请先完成绑定'); return; }
+  setSyncStatus('正在拉取…');
+  try{
+    var json=await ghFetch('https://api.github.com/gists/'+state.sync.gistId,{});
+    var f=json.files&&json.files['focus-desk.json'];
+    if(!f||!f.content) throw new Error('云端没有找到数据文件');
+    var pack=JSON.parse(f.content);
+    if(!pack.data) throw new Error('云端文件格式不正确');
+    var cloudAt=pack.savedAt||'';
+    var localAt=state.localAt||'';
+    if(!force && cloudAt && localAt && new Date(cloudAt)<=new Date(localAt)){
+      setSyncStatus('云端没有比本机更新的数据 · 上次拉取 '+fmtTime(state.sync.lastPull));
+      if(!silent) toast('本机已是最新');
+      return;
+    }
+    if(!silent && (state.todos.length||Object.keys(state.diary).length)){ exportData(true); /* 本地有数据时，覆盖前自动留一份备份 */ }
+    applyCloudData(pack.data);
+    state.sync.lastPull=new Date().toISOString();
+    state.sync.cloudAt=cloudAt;
+    localStorage.setItem(STORE_KEY,JSON.stringify(state));
+    render();
+    toast('已从云端恢复最新数据');
+    setSyncStatus('已绑定云端仓库 · 上次推送 '+fmtTime(state.sync.lastPush)+' · 上次拉取 '+fmtTime(state.sync.lastPull));
+  }catch(err){
+    setSyncStatus('拉取失败：'+ghErrorText(err));
+    toast('拉取失败，请看设置页提示');
+  }
+}
+function bindSettings(){
+  var ib=document.getElementById('pwaInstallBtn');
+  if(ib) ib.onclick=function(){
+    var ev=window._deferredPWA;
+    if(!ev){ toast('若没有弹出安装，请用浏览器菜单中的“安装应用”'); return; }
+    ev.prompt();
+    ev.userChoice.then(function(choice){
+      window._deferredPWA=null;
+      toast(choice&&choice.outcome==='accepted'?'安装成功，桌面已添加图标':'未安装，可稍后从浏览器菜单安装');
+      render();
+    });
+  };
+  document.getElementById('syncToken').addEventListener('change',function(){
+    state.sync.token=this.value.trim(); localStorage.setItem(STORE_KEY,JSON.stringify(state));
+  });
+  document.getElementById('syncAuto').onchange=function(){
+    state.sync.auto=this.checked; localStorage.setItem(STORE_KEY,JSON.stringify(state));
+    if(this.checked){
+      if(!state.sync.token){ toast('请先粘贴令牌'); this.checked=false; state.sync.auto=false; return; }
+      if(!state.sync.gistId){ cloudBind(); } else { cloudPull(true,false); }
+    }else toast('自动同步已关闭');
+  };
+  document.getElementById('syncBind').onclick=function(){
+    if(!state.sync.token.trim()){ toast('请先粘贴令牌'); return; }
+    this.disabled=true; var self=this;
+    cloudBind().finally(function(){
+      self.disabled=false;
+      var p=document.getElementById('syncPull'),u=document.getElementById('syncPush');
+      if(state.sync.gistId){ p.disabled=false; u.disabled=false; }
+    });
+  };
+  document.getElementById('syncPush').onclick=function(){ cloudPush(false); };
+  document.getElementById('syncPull').onclick=function(){ cloudPull(false,true); };
+  document.getElementById('exportBtn').onclick=function(){ exportData(false); };
+  document.getElementById('importBtn').onclick=function(){ document.getElementById('importFile').click(); };
+  document.getElementById('importFile').addEventListener('change',function(){
+    var file=this.files[0]; if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(){
+      try{
+        var pack=JSON.parse(reader.result);
+        var d=pack.data||pack;
+        if(pack.app!=='focus-desk' && !d.todos && !d.diary){ throw new Error('not a backup'); }
+        exportData(true);
+        applyCloudData(d); render(); toast('导入完成');
+      }catch(e){ toast('文件不是有效的工作台备份'); }
+    };
+    reader.readAsText(file);
+    this.value='';
+  });
+  document.getElementById('wipeBtn').onclick=function(){
+    if(confirm('确定清空本机的全部待办、番茄记录、日记与设置吗？建议先导出备份。')){
+      localStorage.removeItem(STORE_KEY); location.reload();
+    }
+  };
+}
+function exportData(silent){
+  var pack=syncPayload();
+  var blob=new Blob([JSON.stringify(pack,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='focus-desk-backup-'+todayKey()+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  if(!silent) toast('备份文件已下载');
+}
+
+/* ================= 工具 & 路由 ================= */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+var binders={overview:null,todo:bindTodo,pomo:bindPomo,diary:bindDiary,ask:bindAsk,settings:bindSettings};
+function render(){
+  if(typeof flushDiary==='function') flushDiary();
+  var view=(location.hash||'#/overview').slice(2);
+  if(!titles[view]) view='overview';
+  document.querySelectorAll('.nav-item').forEach(function(n){
+    n.classList.toggle('active',n.dataset.view===view);
+  });
+  document.getElementById('pageTitle').textContent=titles[view];
+  document.getElementById('pageDate').textContent=view==='diary'?'如实记录，不必美化':fmtDate();
+  /* 番茄钟自动循环在后台继续：切走视图不暂停，倒计时显示在浏览器标题栏 */
+  content.innerHTML=({
+    overview:viewOverview,todo:viewTodo,pomo:viewPomo,diary:viewDiary,ask:viewAsk,settings:viewSettings
+  })[view]();
+  if(binders[view]) binders[view]();
+  closeMenu();
+  window.scrollTo(0,0);
+  if(!pomo.running){ document.title='个人专注工作台'; }
+}
+/* PWA 安装：捕获浏览器安装邀请，设置页显示“立即安装”按钮 */
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();
+  window._deferredPWA=e;
+  if((location.hash||'').indexOf('settings')>=0) render();
+});
+window.addEventListener('appinstalled',function(){
+  window._deferredPWA=null;
+  toast('已安装到主屏幕');
+  if((location.hash||'').indexOf('settings')>=0) render();
+});
+window.addEventListener('hashchange',render);
+document.querySelectorAll('.nav-item').forEach(function(n){
+  n.addEventListener('click',function(){ location.hash='#/'+n.dataset.view; });
+});
+function closeMenu(){
+  document.getElementById('sidebar').classList.remove('open');
+  var mask=document.getElementById('menuMask'); if(mask) mask.classList.remove('show');
+}
+document.getElementById('menuBtn').onclick=function(){
+  var sb=document.getElementById('sidebar'), mask=document.getElementById('menuMask');
+  var open=sb.classList.toggle('open');
+  if(mask) mask.classList.toggle('show',open);
+};
+document.getElementById('menuMask').onclick=closeMenu;
+/* ================= 启动页进入 ================= */
+/* PWA manifest（运行时注入，支持手机“添加到主屏幕”独立窗口打开） */
+(function(){
+  try{
+    if(location.protocol!=='https:'&&location.protocol!=='http:') return; /* 仅在线版支持安装到桌面 */
+    var iconSvg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" fill="#141414"/><rect x="5" y="5" width="6" height="6" fill="#ffffff"/><rect x="13" y="5" width="6" height="6" fill="#888888"/><rect x="5" y="13" width="6" height="6" fill="#888888"/><rect x="13" y="13" width="6" height="6" fill="#ffffff"/></svg>';
+    var manifest={name:'个人专注工作台',short_name:'工作台',start_url:location.pathname,scope:location.pathname,
+      display:'standalone',background_color:'#fafafa',theme_color:'#fafafa',
+      icons:[{src:'data:image/svg+xml,'+encodeURIComponent(iconSvg),sizes:'any',type:'image/svg+xml',purpose:'any'}]};
+    var ml=document.createElement('link'); ml.rel='manifest';
+    ml.href=URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'}));
+    document.head.appendChild(ml);
+  }catch(e){}
+})();
+(function(){
+  var d=new Date();
+  var wk=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  document.getElementById('splashDate').textContent=todayKey().replace(/-/g,'.')+' · '+wk[d.getDay()];
+  var entered=false;
+  function enterApp(){
+    if(entered)return; entered=true;
+    initAudio(); /* 点击手势内初始化音频，供后续铃声播放 */
+    document.getElementById('splash').classList.add('leaving');
+    document.querySelector('.app').classList.add('ready');
+    setTimeout(function(){ document.getElementById('splash').style.display='none'; },700);
+    /* 已开启自动同步：进入后延迟拉取云端最新数据 */
+    if(state.sync.auto && state.sync.token && state.sync.gistId){
+      setTimeout(function(){ cloudPull(true,false); },1800);
+    }
+  }
+  document.getElementById('enterBtn').addEventListener('click',enterApp);
+  document.getElementById('splash').addEventListener('click',function(e){
+    if(e.target===this) enterApp(); /* 点击空白处也可进入 */
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Enter'||e.key===' '){ if(!entered) enterApp(); }
+  });
+})();
+
+document.getElementById('pageDate').textContent=fmtDate();
+render();
+</script>
+<script>
+if(location.protocol==='https:'&&'serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./sw.js').then(function(reg){
+      window._swReg=reg;
+    }).catch(function(err){ console.warn('SW register failed:',err); });
+  });
+}
+</script>
+</body>
+</html>
